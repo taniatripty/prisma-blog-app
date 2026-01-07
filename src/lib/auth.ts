@@ -3,21 +3,21 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import nodemailer from "nodemailer";
 import { prisma } from "./prisma";
 
-// If your Prisma file is located elsewhere, you can change the path
+
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
-  secure: false, // Use true for port 465, false for port 587
+  secure: false,
   auth: {
-    user: "taniatripty381@gmail.com",
-    pass: "dneq kswt gtlk jdki",
+    user: process.env.USER,
+    pass: process.env.PASSWORD,
   },
 });
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
-    provider: "postgresql", // or "mysql", "postgresql", ...etc
+    provider: "postgresql", 
   }),
   trustedOrigins: [process.env.APP_URL!],
   user: {
@@ -44,17 +44,17 @@ export const auth = betterAuth({
     requireEmailVerification: true,
   },
   emailVerification: {
-    sendOnSignUp:true,
-    autoSignInAfterVerification:true,
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url, token }, request) => {
-     try {
-         const verifyEmail = `${process.env.APP_URL}/verify-email?token=${token}`;
-      const info = await transporter.sendMail({
-        from: '"prisma blog" <prisma@gmail.com>',
-        to: user.email,
-        subject: "Email verification",
-        text: "Hello world?", // Plain-text version of the message
-        html: `<!DOCTYPE html>
+      try {
+        const verifyEmail = `${process.env.APP_URL}/verify-email?token=${token}`;
+        const info = await transporter.sendMail({
+          from: '"prisma blog" <prisma@gmail.com>',
+          to: user.email,
+          subject: "Email verification",
+          text: "Hello world?", 
+          html: `<!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8" />
@@ -142,21 +142,21 @@ export const auth = betterAuth({
   </body>
 </html>
 `, // HTML version of the message
-      });
+        });
 
-      console.log("Message sent:", info.messageId);
-     } catch (err) {
-        console.error(err)
-        throw err
-     }
+        console.log("Message sent:", info.messageId);
+      } catch (err) {
+        console.error(err);
+        throw err;
+      }
     },
   },
   socialProviders: {
-        google: { 
-            prompt:"select_account consent",
-            accessType:"offline",
-            clientId: process.env.GOOGLE_CLIENT_ID as string, 
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET as string, 
-        }, 
+    google: {
+      prompt: "select_account consent",
+      accessType: "offline",
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
+  },
 });
