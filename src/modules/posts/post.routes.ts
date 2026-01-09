@@ -1,5 +1,5 @@
-import express, { NextFunction, Request, Response } from "express";
-;
+import express from "express";
+
 import { postController } from "./post.controller";
 
 import authmiddleware, { UserRoles } from "../../middleware/authmiddleware";

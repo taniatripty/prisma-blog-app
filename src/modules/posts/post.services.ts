@@ -1,116 +1,182 @@
-import { Post, PostStatus } from "../../../generated/prisma/client";
+import {
+  CommentStatus,
+  Post,
+  PostStatus,
+} from "../../../generated/prisma/client";
 import { PostWhereInput } from "../../../generated/prisma/models";
 import { prisma } from "../../lib/prisma";
 
-const creatpost=async(data:Omit<Post, "id" | "createdAt" | "updatedAt" | " authorId">, userId:string)=>{
-    const result=await prisma.post.create({
-        data:{
-            ...data,
-            authorId:userId
-        }
-    })
-    return result
-}
-const getPost=async(
-    {search,tags,isFeatured,status,authorId,page,limit,skip,sortBy,sortOrder}:{
-        search:string |undefined,
-        tags:string[] | [],
-        isFeatured:boolean |undefined,
-        status:PostStatus| undefined,
-        authorId:string | undefined,
-        page:number,
-        limit:number,
-        skip:number,
-        sortBy:string,
-        sortOrder:string
-
-    })=>{
-    
-        const andConditions:PostWhereInput[]=[]
-        if(search){
-            andConditions.push( {OR:[
-            {title:{
-            contains:search as string,
-            mode:"insensitive"
-        }},
-            {content:{
-                contains:search as string,
-                mode:"insensitive"
-            }},
-            {
-                tags:{
-                    has:search as string
-                }
-            }
-           ]})
-        }
-        if(tags.length>0){
-            andConditions.push({tags:{
-            hasEvery:tags as string[]
-           }}
-
-            )
-        }
-        if(typeof isFeatured=='boolean'){
-            andConditions.push({isFeatured})
-        }
-        if(status){
-            andConditions.push({status})
-        }
-        if(authorId){
-            andConditions.push({authorId})
-        }
-    const allpost=await prisma.post.findMany({
-        take:limit,
-        skip,
-        where:{
-          AND:andConditions
+const creatpost = async (
+  data: Omit<Post, "id" | "createdAt" | "updatedAt" | " authorId">,
+  userId: string
+) => {
+  const result = await prisma.post.create({
+    data: {
+      ...data,
+      authorId: userId,
+    },
+  });
+  return result;
+};
+const getPost = async ({
+  search,
+  tags,
+  isFeatured,
+  status,
+  authorId,
+  page,
+  limit,
+  skip,
+  sortBy,
+  sortOrder,
+}: {
+  search: string | undefined;
+  tags: string[] | [];
+  isFeatured: boolean | undefined;
+  status: PostStatus | undefined;
+  authorId: string | undefined;
+  page: number;
+  limit: number;
+  skip: number;
+  sortBy: string;
+  sortOrder: string;
+}) => {
+  const andConditions: PostWhereInput[] = [];
+  if (search) {
+    andConditions.push({
+      OR: [
+        {
+          title: {
+            contains: search as string,
+            mode: "insensitive",
+          },
         },
-        orderBy:{
-           [ sortBy]:sortOrder }
-    })
-const total=await prisma.post.count({
-   where:{
-          AND:andConditions
-        }
-})
-
-    return {
-        data:allpost,
-        pagination:{
-            total,
-            page,
-            limit,
-            totalPages:Math.ceil(total/limit)
+        {
+          content: {
+            contains: search as string,
+            mode: "insensitive",
+          },
+        },
+        {
+          tags: {
+            has: search as string,
+          },
+        },
+      ],
+    });
+  }
+  if (tags.length > 0) {
+    andConditions.push({
+      tags: {
+        hasEvery: tags as string[],
+      },
+    });
+  }
+  if (typeof isFeatured == "boolean") {
+    andConditions.push({ isFeatured });
+  }
+  if (status) {
+    andConditions.push({ status });
+  }
+  if (authorId) {
+    andConditions.push({ authorId });
+  }
+  const allpost = await prisma.post.findMany({
+    take: limit,
+    skip,
+    where: {
+      AND: andConditions,
+    },
+    orderBy: {
+      [sortBy]: sortOrder,
+    },
+    include:{
+        _count:{
+            select:{
+                comments:true
+            }
         }
     }
-}
 
+  });
+  const total = await prisma.post.count({
+    where: {
+      AND: andConditions,
+    },
 
-const getpostById=async(postId:string)=>{
-   const result=await prisma.$transaction (async(tx)=>{
- await tx.post.update({
-        where:{
-            id:postId
+  });
+
+  return {
+    data: allpost,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+const getpostById = async (postId: string) => {
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.post.update({
+      where: {
+        id: postId,
+      },
+      data: {
+        views: {
+          increment: 1,
         },
-        data:{
-            views:{
-                increment:1
+      },
+    });
+    const postData = await tx.post.findUnique({
+      where: {
+        id: postId,
+      },
+      include: {
+        comments: {
+          where: {
+            parentId: null,
+            status: CommentStatus.APPROVED,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          include: {
+            replies: {
+              where: {
+                status: CommentStatus.APPROVED,
+              },
+              orderBy: {
+                createdAt: "asc",
+              },
+              include: {
+                replies: {
+                  where: {
+                    status: CommentStatus.APPROVED,
+                  },
+                  orderBy: {
+                    createdAt: "asc",
+                  },
+                },
+              },
+            },
+          },
+        },
+        _count:{
+            select:{
+                comments:true
             }
         }
-    })
-    const postData=await tx.post.findUnique({
-        where:{
-            id:postId
-        }
-    })
-    return postData
-   })
-    return result
-}
+      },
+    });
+    return postData;
+  });
+  return result;
+};
 
-export const postServices={
-    creatpost,
-    getPost,
-    getpostById
-}
+export const postServices = {
+  creatpost,
+  getPost,
+  getpostById,
+};
