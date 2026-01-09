@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { postServices } from "./post.services";
 import { PostStatus } from "../../../generated/prisma/enums";
+import { number, parseAsync } from "better-auth/*";
+import paginationSorting from "../../helpers/paginationsorting";
 
 const createpost = async (req: Request, res: Response) => {
   try {
@@ -36,7 +38,10 @@ const getPost = async (req: Request, res: Response) => {
     const status=req.query.status as PostStatus |undefined
 
     const authorId=req.query.authorId as string | undefined
-    const result=await postServices.getPost({search:searchString,tags,isFeatured,status,authorId})
+   
+     const {page,limit,skip,sortBy,sortOrder}=paginationSorting(req.query)
+     
+    const result=await postServices.getPost({search:searchString,tags,isFeatured,status,authorId,page,limit,skip,sortBy,sortOrder})
     res.status(200).json(result)
   } catch (e) {
     res.status(400).json({
@@ -44,9 +49,28 @@ const getPost = async (req: Request, res: Response) => {
       details: e,
     });
   }
-};
+}
+  
+  const getpostById=async(req:Request,res:Response)=>{
+    try {
+      const {postId}=req.params;
+      console.log({postId})
+      if(!postId){
+        throw new Error('post is failed')
+      }
+      const result=await postServices.getpostById(postId as string)
+      res.status(200).json(result)
+      
+    } catch (e) {
+    res.status(400).json({
+      error: "post is failed",
+      details: e,
+    });
+  }
+  }
 
 export const postController = {
   createpost,
-  getPost
+  getPost,
+  getpostById
 };

@@ -12,12 +12,17 @@ const creatpost=async(data:Omit<Post, "id" | "createdAt" | "updatedAt" | " autho
     return result
 }
 const getPost=async(
-    {search,tags,isFeatured,status,authorId}:{
+    {search,tags,isFeatured,status,authorId,page,limit,skip,sortBy,sortOrder}:{
         search:string |undefined,
         tags:string[] | [],
         isFeatured:boolean |undefined,
         status:PostStatus| undefined,
-        authorId:string | undefined
+        authorId:string | undefined,
+        page:number,
+        limit:number,
+        skip:number,
+        sortBy:string,
+        sortOrder:string
 
     })=>{
     
@@ -55,15 +60,57 @@ const getPost=async(
         if(authorId){
             andConditions.push({authorId})
         }
-    const result=await prisma.post.findMany({
+    const allpost=await prisma.post.findMany({
+        take:limit,
+        skip,
         where:{
           AND:andConditions
+        },
+        orderBy:{
+           [ sortBy]:sortOrder }
+    })
+const total=await prisma.post.count({
+   where:{
+          AND:andConditions
+        }
+})
+
+    return {
+        data:allpost,
+        pagination:{
+            total,
+            page,
+            limit,
+            totalPages:Math.ceil(total/limit)
+        }
+    }
+}
+
+
+const getpostById=async(postId:string)=>{
+   const result=await prisma.$transaction (async(tx)=>{
+ await tx.post.update({
+        where:{
+            id:postId
+        },
+        data:{
+            views:{
+                increment:1
+            }
         }
     })
+    const postData=await tx.post.findUnique({
+        where:{
+            id:postId
+        }
+    })
+    return postData
+   })
     return result
 }
 
 export const postServices={
     creatpost,
-    getPost
+    getPost,
+    getpostById
 }

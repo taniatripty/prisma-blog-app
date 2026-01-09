@@ -12,7 +12,7 @@ declare global{
                 id:string;
                 email:string;
                 name:string;
-                role:string;
+                role:UserRoles;
                 emailVerified: boolean;
 
 
@@ -44,7 +44,7 @@ const authmiddleware = (...roles: UserRoles[]) => {
         id:session.user.id,
         email:session.user.email,
         name:session.user.name,
-        role:session.user.role as string,
+        role:session.user.role as UserRoles,
         emailVerified:session.user.emailVerified
 
     }
@@ -55,7 +55,7 @@ const authmiddleware = (...roles: UserRoles[]) => {
                     message: "Forbidden! You don't have permission to access this resources!"
                 })
             }
-    next();
+    next()
   } catch (error) {
     next(error)
     
