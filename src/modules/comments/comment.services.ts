@@ -1,3 +1,4 @@
+import { CommentStatus } from "../../../generated/prisma/enums";
 import { prisma } from "../../lib/prisma"
 
 const createcomment=async(payload:{
@@ -91,9 +92,36 @@ const deletepostById=async(commentId:string,authorId:string)=>{
  
 }
 
+const modaratecomment=async(commentId:string,data:{status:CommentStatus})=>{
+  const commentData=await prisma.comment.findUniqueOrThrow({
+    where:{
+        id:commentId,
+       
+        
+    },
+    select:{
+        id:true,
+        status:true
+    }
+   
+  })
+ if(commentData.status==data.status){
+throw new Error(`already exists (${data.status}) status`)
+ }
+  const result=await prisma.comment.update({
+    where:{
+         id:commentId
+    },
+    data
+  })
+  return result
+ 
+}
+
 export const commentServices={
     createcomment,
     getcommentById,
     getcommentByAuthorId,
-    deletepostById
+    deletepostById,
+    modaratecomment
 }

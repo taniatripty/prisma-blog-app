@@ -3,6 +3,7 @@ import { postServices } from "./post.services";
 import { PostStatus } from "../../../generated/prisma/enums";
 import { number, parseAsync } from "better-auth/*";
 import paginationSorting from "../../helpers/paginationsorting";
+import { UserRoles } from "../../middleware/authmiddleware";
 
 const createpost = async (req: Request, res: Response) => {
   try {
@@ -68,9 +69,77 @@ const getPost = async (req: Request, res: Response) => {
     });
   }
   }
+const getmypost=async(req:Request,res:Response)=>{
+    try {
+      const user=req.user
+      console.log(user)
+      const result=await postServices.getmypost(user?.id as string)
+      res.status(200).json(result)
+      
+    } catch (e) {
+    res.status(400).json({
+      error: "post is failed",
+      details: e,
+    });
+  }
+  }
+
+  const updatePost=async(req:Request,res:Response)=>{
+    try {
+      const{postId}=req.params
+      const user=req.user
+      console.log(user)
+
+      const isAdmin=user?.role==UserRoles.ADMIN
+      const result=await postServices.updatePost(postId as string,req.body,user?.id as string,isAdmin)
+      res.status(200).json(result)
+      
+    } catch (e) {
+    res.status(400).json({
+      error: "post is failed",
+      details: e,
+    });
+  }
+  }
+
+   const deletePost=async(req:Request,res:Response)=>{
+    try {
+      const{postId}=req.params
+      const user=req.user
+      console.log(user)
+
+      const isAdmin=user?.role==UserRoles.ADMIN
+      const result=await postServices.deletePost(postId as string,user?.id as string,isAdmin)
+      res.status(200).json(result)
+      
+    } catch (e) {
+    res.status(400).json({
+      error: "post is failed",
+      details: e,
+    });
+  }
+  }
+   const getstatas=async(req:Request,res:Response)=>{
+    try {
+      
+
+     
+      const result=await postServices.getsatas()
+      res.status(200).json(result)
+      
+    } catch (e) {
+    res.status(400).json({
+      error: "post is failed",
+      details: e,
+    });
+  }}
 
 export const postController = {
   createpost,
   getPost,
-  getpostById
+  getpostById,
+  getmypost,
+  updatePost,
+  deletePost,
+  getstatas
 };
