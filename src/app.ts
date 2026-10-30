@@ -24,8 +24,8 @@ app.use('/comments',commentRoutes)
 app.get('/',(req,res)=>{
 res.send('hello')
 })
-app.use(errorHandler)
 app.use(notFound)
+app.use(errorHandler)
 
 
 export default app
